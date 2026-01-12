@@ -12,6 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Tables\Actions\ViewAction;
+
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 
 class TaskResource extends Resource
 {
@@ -99,6 +108,36 @@ class TaskResource extends Resource
                 ]),
             ])
             ->actions([
+             ViewAction::make()
+                ->label('Monitoring')
+                ->icon('heroicon-o-presentation-chart-line')
+                ->color('success')
+                ->modalHeading('Monitoring & Update Status')
+                ->form([
+                    \Filament\Forms\Components\Section::make('Kontrol Status')
+                        ->description('Ubah status pengerjaan tugas di sini.')
+                        ->schema([
+                            Select::make('status')
+                                ->label('Status Tugas')
+                                ->options([
+                                    'pending' => 'Pending',
+                                    'in_progress' => 'In Progress / Sedang Dikerjakan',
+                                    'completed' => 'Selesai (Approved)',
+                                ])
+                                ->required(),
+                        ])
+                ])
+                // Logika simpan hanya untuk status
+                ->action(function (array $data, $record) {
+                    $record->update([
+                        'status' => $data['status']
+                    ]);
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Status berhasil diperbarui')
+                        ->success()
+                        ->send();
+                }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -106,6 +145,49 @@ class TaskResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Section::make('Informasi Tugas')
+                    ->schema([
+                        TextEntry::make('title')->label('Judul Tugas'),
+                        TextEntry::make('status')
+                            ->badge()
+                            ->color(fn (string $state): string => match ($state) {
+                                'pending' => 'gray',
+                                'in_progress' => 'info',
+                                'completed' => 'success',
+                            }),
+                        TextEntry::make('description')
+                            ->label('Deskripsi Lengkap')
+                            ->columnSpanFull(),
+                    ])->columns(2),
+
+                Section::make('Histori Progres Member')
+                    ->description('Riwayat laporan perkembangan dari tim')
+                    ->schema([
+                        // Mengambil data dari relasi 'progress' di Model Task
+                        RepeatableEntry::make('progress')
+                            ->label(false)
+                            ->schema([
+                                TextEntry::make('user.name')
+                                    ->label('Oleh Member')
+                                    ->badge()
+                                    ->color('success'),
+                                TextEntry::make('created_at')
+                                    ->label('Waktu Lapor')
+                                    ->dateTime()
+                                    ->color('gray'),
+                                TextEntry::make('content')
+                                    ->label('Catatan Progres')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2)
+                    ])
             ]);
     }
 

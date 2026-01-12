@@ -21,4 +21,9 @@ class Task extends Model
     {
         return $this->belongsToMany(User::class);
     }
+
+    public function progress() // Nama fungsi ini harus 'progress' sesuai yang ada di infolist
+    {
+        return $this->hasMany(TaskProgress::class, 'task_id');
+    }
 }
