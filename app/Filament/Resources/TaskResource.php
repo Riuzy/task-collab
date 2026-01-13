@@ -173,6 +173,9 @@ class TaskResource extends Resource
                         // Mengambil data dari relasi 'progress' di Model Task
                         RepeatableEntry::make('progress')
                             ->label(false)
+                            ->state(function ($record) {
+                                return $record->progress->sortByDesc('created_at');
+                                 })
                             ->schema([
                                 TextEntry::make('user.name')
                                     ->label('Oleh Member')
@@ -190,6 +193,20 @@ class TaskResource extends Resource
                     ])
             ]);
     }
+
+    public function show($id)
+        {
+            // Proteksi: Pastikan hanya pemilik tugas yang bisa lihat detailnya
+            $task = auth()->user()->tasks()
+                ->with(['progress' => fn($q) => $q->latest()]) // Urutan terbaru di atas seperti permintaan Anda tadi
+                ->find($id);
+
+            if (!$task) {
+                return response()->json(['message' => 'Tugas tidak ditemukan atau akses dilarang'], 403);
+            }
+
+            return response()->json($task);
+        }
 
     public static function getRelations(): array
     {
