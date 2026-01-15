@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\TaskProgress;
 use App\Models\Task;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,5 +44,28 @@ class TaskController extends Controller
             'message' => 'Status berhasil diperbarui',
             'task' => $task
         ]);
+    }
+    public function storeProgress(Request $request, $id)
+    {
+        // 1. Validasi input
+        $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        // 2. Cari Task berdasarkan ID
+        $task = Task::findOrFail($id);
+
+        // 3. Simpan data progres
+        $progress = TaskProgress::create([
+            'task_id' => $task->id,
+            'user_id' => Auth::id(), // Mengambil ID Member yang login
+            'content' => $request->content,
+        ]);
+
+        // 4. Return respon sukses (Status Code 201)
+        return response()->json([
+            'message' => 'Progress berhasil ditambahkan',
+            'data' => $progress->load('user') // Load relasi user untuk dikirim balik
+        ], 201);
     }
 }
